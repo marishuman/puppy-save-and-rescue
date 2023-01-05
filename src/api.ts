@@ -129,34 +129,30 @@ export const getOwnerById = ((async (event) => {
  *
  **/
 export const getLostPets = ((async (event) => {
-    //initialize the DB
     let db = await init();
     let petId = 0;
     let petName = "";
-    
-    //gets all the pet names from pets
-    const result = db.prepare("SELECT * FROM pets WHERE id=:id ");
-    let petDetails = result.getAsObject({ ':id': petId });
-    result.free();
      
     //gets all the pet ids from owners_pets
     const petsIdQuery = db.prepare("SELECT * FROM owners_pets WHERE owners_pets.pet_id = :petid;");
-    const petWithOwnerId = petsIdQuery.bind({ ':petid': petId });
+    let petWithOwnerId = petsIdQuery.bind({ ':petid': petId });
+    petsIdQuery.free();
     //gets all the pet names from the pets table
     const petsNameQuery = db.prepare("SELECT * FROM pets WHERE pets.name = :petname;");
     const petNameDetails = petsNameQuery.bind({ ':petname': petName });
     petNameDetails.pets = [];
-    const row = petsNameQuery.getAsObject();
+    
     //traverses through the owners_pets table
-    while (petsIdQuery.step) {
+    while (petsIdQuery.step()) {
         const row = petsNameQuery.getAsObject();
         //add all the names of the pets that are not in the owners_pets table
-        if(petsIdQuery.get == petsNameQuery.get){
+        if(petsIdQuery.get() == petsNameQuery.get()){
                 petNameDetails.pets.push(row);
         }
     }
     //make results readable
-    result.free();
-    return { statusCode: 200, body: JSON.stringify(petDetails) };
-}))
+    petsIdQuery.free();
+    return { statusCode: 200, body: JSON.stringify(petNameDetails) };
+}));
+
 
